@@ -76,13 +76,14 @@ const safeGetApiKey = (): string | undefined => {
 const FloatingNav: React.FC<{
   changeView: (view: View) => void;
   onOpenSettings: () => void;
+  onOpenSavedStories: () => void;
   isVisible: boolean;
-}> = ({ changeView, onOpenSettings, isVisible }) => {
+}> = ({ changeView, onOpenSettings, onOpenSavedStories, isVisible }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [position, setPosition] = useState({ bottom: 128, right: 32 });
+  const [position, setPosition] = useState({ top: 32, left: 32 });
   const [isDragging, setIsDragging] = useState(false);
   const hasDraggedRef = useRef(false);
-  const dragStartPos = useRef({ x: 0, y: 0, bottom: 0, right: 0 });
+  const dragStartPos = useRef({ x: 0, y: 0, top: 0, left: 0 });
   const fabRef = useRef<HTMLDivElement>(null);
 
   const colors = {
@@ -91,6 +92,7 @@ const FloatingNav: React.FC<{
     green: 'bg-green-500 hover:bg-green-400 shadow-[0_0_15px_var(--neon-green)]',
     purple: 'bg-purple-500 hover:bg-purple-400 shadow-[0_0_15px_var(--neon-purple)]',
     orange: 'bg-orange-500 hover:bg-orange-400 shadow-[0_0_15px_var(--neon-orange)]',
+    yellow: 'bg-yellow-400 hover:bg-yellow-300 shadow-[0_0_15px_var(--neon-yellow)]',
   };
 
   type NavItem = {
@@ -106,6 +108,7 @@ const FloatingNav: React.FC<{
     { id: 'favorites', onClick: () => changeView(View.Favorites), icon: 'heart-filled', color: 'pink', label: 'Favorites' },
     { id: 'radio', onClick: () => changeView(View.Radio), icon: 'radio', color: 'green', label: 'Radio' },
     { id: 'eq', onClick: () => changeView(View.EQ), icon: 'eq', color: 'purple', label: 'Audio Settings' },
+    { id: 'stories', onClick: onOpenSavedStories, icon: 'book', color: 'yellow', label: 'Saved Stories' },
     { id: 'settings', onClick: onOpenSettings, icon: 'settings', color: 'orange', label: 'AI Settings' },
   ];
 
@@ -119,14 +122,17 @@ const FloatingNav: React.FC<{
     }
 
     const fabSize = 80;
-    const newRight = dragStartPos.current.right - dx;
-    const newBottom = dragStartPos.current.bottom - dy;
+    const newLeft = dragStartPos.current.left + dx;
+    const newTop = dragStartPos.current.top + dy;
     
-    const constrainedRight = Math.max(16, Math.min(newRight, window.innerWidth - fabSize - 16));
-    const constrainedBottom = Math.max(16, Math.min(newBottom, window.innerHeight - fabSize - 16));
+    const expandedWidth = fabSize + (navItems.length * (56 + 16)); // 56=w-14, 16=gap-4
+    const currentWidth = isOpen ? expandedWidth : fabSize;
 
-    setPosition({ bottom: constrainedBottom, right: constrainedRight });
-  }, []);
+    const constrainedLeft = Math.max(16, Math.min(newLeft, window.innerWidth - currentWidth - 16));
+    const constrainedTop = Math.max(16, Math.min(newTop, window.innerHeight - fabSize - 16));
+
+    setPosition({ top: constrainedTop, left: constrainedLeft });
+  }, [isOpen, navItems.length]);
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
@@ -143,7 +149,7 @@ const FloatingNav: React.FC<{
     e.preventDefault();
     setIsDragging(true);
     hasDraggedRef.current = false;
-    dragStartPos.current = { x: e.clientX, y: e.clientY, bottom: position.bottom, right: position.right };
+    dragStartPos.current = { x: e.clientX, y: e.clientY, top: position.top, left: position.left };
     document.body.style.userSelect = 'none';
     document.body.style.cursor = 'grabbing';
     document.addEventListener('mousemove', handleMouseMove);
@@ -165,25 +171,10 @@ const FloatingNav: React.FC<{
     <div 
         ref={fabRef}
         className="fixed z-[60]"
-        style={{ bottom: `${position.bottom}px`, right: `${position.right}px` }}
+        style={{ top: `${position.top}px`, left: `${position.left}px` }}
         onMouseDown={handleMouseDown}
     >
-      <div className="relative flex flex-col items-center gap-4">
-        {navItems.map((item, index) => (
-          <button
-            key={item.id}
-            onClick={() => {
-                if (hasDraggedRef.current) return;
-                item.onClick();
-                setIsOpen(false);
-            }}
-            className={`w-14 h-14 rounded-full flex items-center justify-center text-black font-semibold transition-all duration-300 transform ${colors[item.color]} ${isOpen ? 'scale-100 opacity-100' : 'scale-0 opacity-0 -translate-y-4'}`}
-            style={{ transitionDelay: `${isOpen ? index * 50 : (navItems.length - index - 1) * 30}ms`}}
-            aria-label={item.label}
-          >
-            <Icon name={item.icon} className="w-7 h-7" />
-          </button>
-        ))}
+      <div className="relative flex items-center gap-4">
         <button
           onClick={() => {
             if (hasDraggedRef.current) {
@@ -198,8 +189,23 @@ const FloatingNav: React.FC<{
           aria-label="Toggle navigation menu"
         >
           <div className="absolute inset-0 bg-black/20 rounded-full"></div>
-          <Icon name={isOpen ? 'close' : 'plus'} className={`w-10 h-10 transition-transform duration-300 ${isOpen ? 'rotate-45' : ''}`} />
+          <Icon name={isOpen ? 'close' : 'music-note'} className={`w-10 h-10 transition-transform duration-300`} />
         </button>
+        {navItems.map((item, index) => (
+          <button
+            key={item.id}
+            onClick={() => {
+                if (hasDraggedRef.current) return;
+                item.onClick();
+                setIsOpen(false);
+            }}
+            className={`w-14 h-14 rounded-full flex items-center justify-center text-black font-semibold transition-all duration-300 transform ${colors[item.color]} ${isOpen ? 'scale-100 opacity-100' : 'scale-0 opacity-0 -translate-x-4'}`}
+            style={{ transitionDelay: `${isOpen ? index * 50 : (navItems.length - index - 1) * 30}ms`}}
+            aria-label={item.label}
+          >
+            <Icon name={item.icon} className="w-7 h-7" />
+          </button>
+        ))}
       </div>
     </div>
   );
@@ -989,18 +995,8 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-[#121212] text-gray-200 flex flex-col font-sans">
       <audio ref={audioRef} onEnded={handleEnded} crossOrigin="anonymous" />
       <main className="flex-grow p-4 sm:p-6 md:p-8 flex flex-col mb-28">
-        <header className="mb-8 flex justify-between items-center">
-          <div>
-            <h1 className="text-4xl sm:text-5xl font-bold text-cyan-300 tracking-wider neon-text-glow-cyan">Radio Player</h1>
-            <p className="text-gray-400 mt-2">Your personal music and radio hub.</p>
-          </div>
-          <button onClick={openSavedStories} className="flex items-center gap-2 px-4 py-2 bg-purple-600/80 text-white rounded-lg cursor-pointer hover:bg-purple-600 transition-all duration-300 shadow-[0_0_10px_var(--neon-purple)]">
-            <Icon name="book" />
-            <span>Saved Stories</span>
-          </button>
-        </header>
-
-        <div className="bg-black/30 backdrop-blur-md rounded-xl p-4 sm:p-6 shadow-2xl flex-grow flex flex-col border border-cyan-400/20 shadow-[0_0_25px_rgba(0,255,255,0.2)]">
+        
+        <div className="bg-black/30 backdrop-blur-md rounded-xl p-4 sm:p-6 shadow-2xl flex-grow flex flex-col border border-cyan-400/20 shadow-[0_0_25px_rgba(0,255,255,0.2)] mt-24">
           {view !== View.EQ && (
             <div className="flex items-center justify-between mb-6 gap-4">
               <div className="flex bg-black/30 border border-gray-700 rounded-lg p-1 flex-shrink-0">
@@ -1128,6 +1124,7 @@ const App: React.FC = () => {
       <FloatingNav
         changeView={changeView}
         onOpenSettings={() => setIsSettingsPanelOpen(true)}
+        onOpenSavedStories={openSavedStories}
         isVisible={view !== View.EQ}
       />
 
