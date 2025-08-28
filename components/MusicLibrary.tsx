@@ -19,7 +19,7 @@ const MusicLibrary: React.FC<MusicLibraryProps> = ({ tracks, favorites, onSelect
       <div className="flex flex-col items-center justify-center h-full text-gray-500/80">
         <Icon name="music-note" className="w-24 h-24 mb-4 text-cyan-400/30" style={{filter: `drop-shadow(0 0 10px var(--neon-cyan))`}} />
         <h2 className="text-2xl font-semibold text-gray-400">Your Library is Empty</h2>
-        <p className="mt-2 text-gray-500">Upload some MP3 files to get started!</p>
+        <p className="mt-2 text-gray-500">Upload some MP3 files or drag & drop them here.</p>
       </div>
     );
   }
@@ -38,10 +38,10 @@ const MusicLibrary: React.FC<MusicLibraryProps> = ({ tracks, favorites, onSelect
       {tracks.map((track, index) => (
         <div
           key={track.id}
-          className={`group flex items-center p-3 rounded-lg cursor-pointer transition-all duration-300 border ${
+          className={`group flex items-center p-3 rounded-lg cursor-pointer transition-all duration-300 ease-in-out border ${
             currentTrackId === track.id
-              ? 'bg-cyan-400/10 border-cyan-400/50 shadow-[0_0_10px_rgba(0,255,255,0.4)]'
-              : 'border-transparent hover:bg-gray-700/50'
+              ? 'bg-cyan-400/10 animate-pulse-glow-cyan'
+              : 'border-transparent hover:bg-gray-800/60 hover:border-gray-700'
           }`}
           onClick={() => onSelectTrack(index)}
         >

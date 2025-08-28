@@ -38,10 +38,10 @@ const RadioStationList: React.FC<RadioStationListProps> = ({ stations, onSelectS
       {stations.map((station, index) => (
         <div
           key={station.id}
-          className={`group flex items-center p-3 rounded-lg cursor-pointer transition-all duration-300 border ${
+          className={`group flex items-center p-3 rounded-lg cursor-pointer transition-all duration-300 ease-in-out border ${
             currentTrackId === station.id
-              ? 'bg-green-400/10 border-green-400/50 shadow-[0_0_10px_rgba(57,255,20,0.4)]'
-              : 'border-transparent hover:bg-gray-700/50'
+              ? 'bg-green-400/10 animate-pulse-glow-green'
+              : 'border-transparent hover:bg-gray-800/60 hover:border-gray-700'
           }`}
           onClick={() => onSelectStation(index)}
         >

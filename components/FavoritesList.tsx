@@ -39,10 +39,10 @@ const FavoritesList: React.FC<FavoritesListProps> = ({ tracks, favorites, onSele
       {tracks.map((track) => (
         <div
           key={track.id}
-          className={`group flex items-center p-3 rounded-lg cursor-pointer transition-all duration-300 border ${
+          className={`group flex items-center p-3 rounded-lg cursor-pointer transition-all duration-300 ease-in-out border ${
              currentTrackId === track.id
-              ? 'bg-pink-400/10 border-pink-400/50 shadow-[0_0_10px_rgba(255,16,240,0.4)]'
-              : 'border-transparent hover:bg-gray-700/50'
+              ? 'bg-pink-400/10 animate-pulse-glow-pink'
+              : 'border-transparent hover:bg-gray-800/60 hover:border-gray-700'
           }`}
           onClick={() => onSelectTrack(track.id)}
         >

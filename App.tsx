@@ -107,7 +107,7 @@ const FloatingNav: React.FC<{
     { id: 'library', onClick: () => changeView(View.Library), icon: 'music-note', color: 'cyan', label: 'Library' },
     { id: 'favorites', onClick: () => changeView(View.Favorites), icon: 'heart-filled', color: 'pink', label: 'Favorites' },
     { id: 'radio', onClick: () => changeView(View.Radio), icon: 'radio', color: 'green', label: 'Radio' },
-    { id: 'eq', onClick: () => changeView(View.EQ), icon: 'eq', color: 'purple', label: 'Audio Settings' },
+    { id: 'eq', onClick: () => changeView(View.EQ), icon: 'eq', color: 'purple', label: 'Settings' },
     { id: 'stories', onClick: onOpenSavedStories, icon: 'book', color: 'yellow', label: 'Saved Stories' },
     { id: 'settings', onClick: onOpenSettings, icon: 'settings', color: 'orange', label: 'AI Settings' },
   ];
@@ -330,6 +330,7 @@ const App: React.FC = () => {
   const [isVisualizerOpen, setIsVisualizerOpen] = useState(false);
   const [isAudioContextReady, setIsAudioContextReady] = useState(false);
   const [isResetConfirmationOpen, setIsResetConfirmationOpen] = useState(false);
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
 
   const [savedStories, setSavedStories] = useState<SavedStory[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -589,8 +590,7 @@ const App: React.FC = () => {
     };
   }, []);
   
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
+  const handleFilesUpload = useCallback(async (files: FileList | null) => {
     if (files) {
       const newTracks: Track[] = Array.from(files)
         .filter(file => file.type === 'audio/mpeg' || file.name.endsWith('.pls'))
@@ -619,7 +619,61 @@ const App: React.FC = () => {
 
       setTracks(prevTracks => [...prevTracks, ...newTracks]);
       setCurrentPages(p => ({...p, [View.Library]: 1}));
+      setView(View.Library); // Switch to library view after upload
     }
+  }, []);
+
+  // Handle drag and drop for file uploads
+  useEffect(() => {
+    let dragCounter = 0;
+
+    const preventDefaults = (e: DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+    };
+
+    const handleDragEnter = (e: DragEvent) => {
+        preventDefaults(e);
+        if (e.dataTransfer && Array.from(e.dataTransfer.types).includes('Files')) {
+            dragCounter++;
+            if (dragCounter === 1) {
+                setIsDraggingOver(true);
+            }
+        }
+    };
+
+    const handleDragLeave = (e: DragEvent) => {
+        preventDefaults(e);
+        dragCounter--;
+        if (dragCounter === 0) {
+            setIsDraggingOver(false);
+        }
+    };
+
+    const handleDrop = (e: DragEvent) => {
+        preventDefaults(e);
+        dragCounter = 0;
+        setIsDraggingOver(false);
+        if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
+            handleFilesUpload(e.dataTransfer.files);
+        }
+    };
+    
+    window.addEventListener('dragenter', handleDragEnter);
+    window.addEventListener('dragover', preventDefaults);
+    window.addEventListener('dragleave', handleDragLeave);
+    window.addEventListener('drop', handleDrop);
+
+    return () => {
+        window.removeEventListener('dragenter', handleDragEnter);
+        window.removeEventListener('dragover', preventDefaults);
+        window.removeEventListener('dragleave', handleDragLeave);
+        window.removeEventListener('drop', handleDrop);
+    };
+  }, [handleFilesUpload]);
+
+  const handleFileUploadInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    handleFilesUpload(event.target.files);
   };
 
   const handleAddStation = async (name: string, url: string) => {
@@ -990,13 +1044,26 @@ const App: React.FC = () => {
     };
     const currentViewStyle = viewStyles[view as Exclude<View, View.EQ>];
 
+  const viewGlowStyles = {
+    [View.Library]: 'border-cyan-400/50 shadow-[0_0_40px_rgba(0,255,255,0.35)]',
+    [View.Favorites]: 'border-pink-500/50 shadow-[0_0_40px_rgba(255,16,240,0.35)]',
+    [View.Radio]: 'border-green-500/50 shadow-[0_0_40px_rgba(57,255,20,0.35)]',
+  };
+  const currentGlowStyle = viewGlowStyles[view as Exclude<View, View.EQ>] ?? viewGlowStyles[View.Library];
+
 
   return (
     <div className="min-h-screen bg-[#121212] text-gray-200 flex flex-col font-sans">
+       {isDraggingOver && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[1000] flex flex-col items-center justify-center border-4 border-dashed border-cyan-400 pointer-events-none">
+          <Icon name="upload" className="w-24 h-24 text-cyan-400" style={{filter: `drop-shadow(0 0 10px var(--neon-cyan))`}} />
+          <p className="mt-4 text-2xl font-semibold text-white">Drop MP3 files anywhere to upload</p>
+        </div>
+      )}
       <audio ref={audioRef} onEnded={handleEnded} crossOrigin="anonymous" />
       <main className="flex-grow p-4 sm:p-6 md:p-8 flex flex-col mb-28">
         
-        <div className="bg-black/30 backdrop-blur-md rounded-xl p-4 sm:p-6 shadow-2xl flex-grow flex flex-col border border-cyan-400/20 shadow-[0_0_25px_rgba(0,255,255,0.2)] mt-24">
+        <div className={`bg-black/30 backdrop-blur-md rounded-xl p-4 sm:p-6 shadow-2xl flex-grow flex flex-col border transition-all duration-500 ${currentGlowStyle} mt-24`}>
           {view !== View.EQ && (
             <div className="flex items-center justify-between mb-6 gap-4">
               <div className="flex bg-black/30 border border-gray-700 rounded-lg p-1 flex-shrink-0">
@@ -1036,7 +1103,7 @@ const App: React.FC = () => {
                     <label className="flex items-center gap-2 px-4 py-2 bg-pink-600/80 text-white rounded-lg cursor-pointer hover:bg-pink-600 transition-all duration-300 shadow-[0_0_10px_var(--neon-pink)] flex-shrink-0">
                         <Icon name="upload" />
                         <span>Upload</span>
-                        <input type="file" multiple accept=".mp3" onChange={handleFileUpload} className="hidden" />
+                        <input type="file" multiple accept=".mp3" onChange={handleFileUploadInputChange} className="hidden" />
                     </label>
                 )}
                </div>
